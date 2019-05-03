@@ -1,0 +1,18 @@
+{
+  "name": "kputoolkit",
+  "version": "1.0.1",
+  "private": true,
+  "dependencies": {
+    "child_process": "^1.0.2",
+    "fs": "0.0.1-security",
+    "http": "0.0.0",
+    "nexe": "^3.1.0",
+    "path": "0.12.7",
+    "request": "^2.88.0",
+    "requestretry": "^4.0.0",
+    "socket.io": "^2.2.0",
+    "url": "0.11.0"
+  },
+  "main": "server.js",
+  "scripts": {}
+}

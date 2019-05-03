@@ -1,0 +1,330 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KPU Check Toolkit</title>
+  <link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/bootstrap/css/bootstrap-select.min.css">
+  <link rel="stylesheet" href="/static/bootstrap/css/bootstrap-float-label.min.css">
+  <link rel="stylesheet" href="/static/bootstrap/css/bootstrap-navbar-fixed-side.min.css">
+  <link rel="stylesheet" href="/static/css/tablesort.css">
+  <link rel="stylesheet" href="/static/css/sweetalert.css">
+  <style>
+    .tooltip > .tooltip-inner {
+      font-size: 15px;
+      max-width: 400px;
+    }
+
+    .form-horizontal .control-label {
+      text-align: left;
+    }
+
+    .confirmation {
+      min-width: 150px;
+    }
+
+    .container, .upload-container, .message-container, .flash-container {
+      width: 100%;
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type=number] {
+      -moz-appearance:textfield;
+    }
+
+    .bootstrap-select {
+      display: table !important;
+      table-layout: fixed !important;
+    }
+
+    .bootstrap-select span.filter-option,
+    .bootstrap-select button.bs-select-all,
+    .bootstrap-select button.bs-deselect-all{
+      display: table-cell !important;
+      white-space: nowrap !important;
+      text-overflow: ellipsis !important;
+      overflow: hidden !important;
+    }
+
+    .collapse-row.collapsed + tr {
+      display: none;
+    }
+  </style>
+ 
+  <script src="/static/jquery/jquery.min.js"></script>
+  <script src="/static/bootstrap/js/bootstrap.min.js"></script>
+  <script src="/static/bootstrap/js/bootstrap-select.min.js"></script>
+  <script src="/static/bootstrap/js/validator.min.js"></script>
+  <script src="/static/bootstrap/js/bootstrap-confirmation.min.js"></script>
+  <script src="/static/js/tether.min.js"></script>
+  <script src="/static/js/clipboard.min.js"></script>
+  <script src="/static/js/socket.io.js"></script>
+  <script src="/static/js/voca.min.js"></script>
+  <script src="/static/js/tablesort.min.js"></script>
+  <script src="/static/js/tablesort-extension.js"></script>
+  <script src="/static/js/sweetalert.min.js"></script>
+ </head>
+<body style="padding: 0">
+
+  <!-- Navigate bar -->
+  <nav class="navbar navbar-default navbar-fixed-top" id="topnavbar">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-expanded="false">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand">KPU Check Toolkit</a>
+      </div>
+
+
+      <div class="collapse navbar-collapse" id="navbar-collapse-1" style="text-align: right">
+        <ul class="nav navbar-nav" style="display: inline-block; float: none">
+          <li>
+            <a>
+              <label class="label label-primary" style="font-size:100%" id="processing" data-stream-stats="total">IDLE</label>
+            </a>
+          </li>
+      <!--
+        -->
+          <li>
+            <form class="navbar-form form-inline" action="/process" method="post">
+              <label for="propselect">Propinsi</label>
+                  <select class="form-control" id="propselect">
+                    <option value="-1">Pilih Propinsi</option>
+                  </select>
+              <label for="kabselect">Kota/Kabupaten</label>
+                  <select class="form-control" id="kabselect">
+                    <option value="-1">Pilih Kota/Kabupaten</option>
+                  </select>
+              <button id="process" type="submit" class="btn btn-primary" title="Process">
+                <span class="glyphicon glyphicon-user"></span>&nbsp;Process
+              </button>
+            </form>
+          </li>
+        </ul>
+
+        <ul class="nav navbar-nav navbar-right">
+          <li>
+            <a title="Version">1.0.4</a>
+          </li>
+          
+        </ul>
+
+      </div>
+    </div>
+  </nav>
+  
+  <script>
+      (function () {
+          var padding_top = $('#topnavbar').height() + 50;
+          $(document.body).css('padding-top', padding_top);
+          $(window).resize(function(){
+              $(document.body).css('padding-top', padding_top);
+          });
+          $.fn.validator.Constructor.FOCUS_OFFSET = padding_top;
+      }());
+  </script>
+
+  <!-- https://github.com/samrayner/bootstrap-side-navbar -->
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-xs-12 col-sm-12 col-md-12 main-body">
+
+        <!-- Page contents -->
+  <div class="container">
+    <form class="form-inline">
+      <div class="pull-right" id="affix-target">
+        <button id="clearlog" class="btn btn-link" formaction="/clearlog"
+                formmethod="post" title="Clear Logs" type="submit"
+                style="outline: none">
+          <span class="glyphicon glyphicon-trash"></span>
+        </button>
+      </div>
+    </form>
+
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h6 class="panel-title">Log Window</h6>
+      </br>
+        <span class="label label-default" style='font-size:100%'>Data belum tersedia</span>
+        <span class="label label-warning" style='font-size:100%'>Suara 01 unngul</span>
+        <span class="label label-success" style='font-size:100%'>Suara 02 unggul</span>
+        <div style="background-color: #f25050" class="p-3 mb-2 col-xs-1 col-sm-1 col-md-1">Data ERROR</div>
+      </div>
+      <div id="tail_window" class="panel-body" style="font-family: monospace; word-break: break-all;">
+      </div>
+    </div>
+  </div>
+
+  <script>
+      /* Initialize the bootstrap affix plugin and set target div offset,
+       * so it will look float at right side.
+       * */
+      $(function () {
+          var target = $('#affix-target');
+          var offset = target.offset();
+
+          target.css('left', offset.left);
+
+          /* required, otherwise affix will listen on strange button click event */
+          target.affix({
+              offset: {
+                  top: offset.top
+              }
+          });
+
+          /* make sure affix plugin still works after window resized. */
+          $(window).resize(function () {
+              var target = $('#affix-target');
+              var parent = target.parent();
+
+              target.width(parent.width);
+          });
+      });
+
+      /*
+       * Scrolling down to the bottom of the page on load.
+       */
+      $(function () {
+          $('html, body').animate({scrollTop: $(document).height()});
+      });
+  </script>
+      </div>
+    </div>
+  </div>
+
+  <script>
+      var props = "{\"1\":{\"nama\":\"ACEH\",\"kabs\":{\"1492\":\"ACEH BARAT\",\"4989\":\"ACEH BARAT DAYA\",\"1824\":\"ACEH BESAR\",\"5286\":\"ACEH JAYA\",\"2\":\"ACEH SELATAN\",\"4233\":\"ACEH SINGKIL\",\"5694\":\"ACEH TAMIANG\",\"1207\":\"ACEH TENGAH\",\"269\":\"ACEH TENGGARA\",\"671\":\"ACEH TIMUR\",\"3205\":\"ACEH UTARA\",\"5920\":\"BENER MERIAH\",\"4362\":\"BIREUEN\",\"5138\":\"GAYO LUES\",\"6397\":\"KOTA BANDA ACEH\",\"6591\":\"KOTA LANGSA\",\"6518\":\"KOTA LHOKSEUMAWE\",\"6497\":\"KOTA SABANG\",\"6648\":\"KOTA SUBULUSSALAM\",\"5463\":\"NAGAN RAYA\",\"2452\":\"PIDIE\",\"6166\":\"PIDIE JAYA\",\"4086\":\"SIMEULUE\"}},\"6728\":{\"nama\":\"SUMATERA UTARA\",\"kabs\":{\"9497\":\"ASAHAN\",\"11635\":\"BATU BARA\",\"9835\":\"DAIRI\",\"8688\":\"DELI SERDANG\",\"11083\":\"HUMBANG HASUNDUTAN\",\"8408\":\"KARO\",\"12038\":\"KOTA BINJAI\",\"7132\":\"KOTA GUNUNGSITOLI\",\"11743\":\"KOTA MEDAN\",\"12122\":\"KOTA PADANG SIDEMPUAN\",\"11916\":\"KOTA PEMATANGSIANTAR\",\"11978\":\"KOTA SIBOLGA\",\"12000\":\"KOTA TANJUNG BALAI\",\"12081\":\"KOTA TEBING TINGGI\",\"9727\":\"LABUHANBATU\",\"6729\":\"LABUHANBATU SELATAN\",\"6789\":\"LABUHANBATU UTARA\",\"8094\":\"LANGKAT\",\"10227\":\"MANDAILING NATAL\",\"7960\":\"NIAS\",\"7013\":\"NIAS BARAT\",\"10646\":\"NIAS SELATAN\",\"6888\":\"NIAS UTARA\",\"12606\":\"PADANG LAWAS\",\"12208\":\"PADANG LAWAS UTARA\",\"11022\":\"PAKPAK BHARAT\",\"11247\":\"SAMOSIR\",\"11374\":\"SERDANG BEDAGAI\",\"9114\":\"SIMALUNGUN\",\"7697\":\"TAPANULI SELATAN\",\"7240\":\"TAPANULI TENGAH\",\"7438\":\"TAPANULI UTARA\",\"10020\":\"TOBA SAMOSIR\"}},\"12920\":{\"nama\":\"SUMATERA BARAT\",\"kabs\":{\"13317\":\"AGAM\",\"13608\":\"DHARMASRAYA\",\"13554\":\"KEPULAUAN MENTAWAI\",\"13905\":\"KOTA BUKITTINGGI\",\"13712\":\"KOTA PADANG\",\"13886\":\"KOTA PADANG PANJANG\",\"14010\":\"KOTA PARIAMAN\",\"13933\":\"KOTA PAYAKUMBUH\",\"13844\":\"KOTA SAWAHLUNTO\",\"13828\":\"KOTA SOLOK\",\"13416\":\"LIMA PULUH KOTA\",\"13253\":\"PADANG PARIAMAN\",\"13509\":\"PASAMAN\",\"13681\":\"PASAMAN BARAT\",\"12921\":\"PESISIR SELATAN\",\"13099\":\"SIJUNJUNG\",\"13010\":\"SOLOK\",\"13634\":\"SOLOK SELATAN\",\"13163\":\"TANAH DATAR\"}},\"14086\":{\"nama\":\"RIAU\",\"kabs\":{\"14630\":\"BENGKALIS\",\"14741\":\"INDRAGIRI HILIR\",\"14414\":\"INDRAGIRI HULU\",\"14166\":\"KAMPAR\",\"14087\":\"KEPULAUAN MERANTI\",\"15846\":\"KOTA DUMAI\",\"15775\":\"KOTA PEKANBARU\",\"15553\":\"KUANTAN SINGINGI\",\"14955\":\"PELALAWAN\",\"15254\":\"ROKAN HILIR\",\"15087\":\"ROKAN HULU\",\"15412\":\"SIAK\"}},\"15885\":{\"nama\":\"JAMBI\",\"kabs\":{\"16576\":\"BATANGHARI\",\"17051\":\"BUNGO\",\"15961\":\"KERINCI\",\"17333\":\"KOTA JAMBI\",\"15886\":\"KOTA SUNGAI PENUH\",\"16183\":\"MERANGIN\",\"16699\":\"MUARO JAMBI\",\"16420\":\"SAROLANGUN\",\"16862\":\"TANJUNG JABUNG BARAT\",\"16946\":\"TANJUNG JABUNG TIMUR\",\"17215\":\"TEBO\"}},\"17404\":{\"nama\":\"SUMATERA SELATAN\",\"kabs\":{\"19172\":\"BANYUASIN\",\"20345\":\"EMPAT LAWANG\",\"20677\":\"KOTA LUBUKLINGGAU\",\"20636\":\"KOTA PAGAR ALAM\",\"20512\":\"KOTA PALEMBANG\",\"20758\":\"KOTA PRABUMULIH\",\"18244\":\"LAHAT\",\"17895\":\"MUARA ENIM\",\"18942\":\"MUSI BANYUASIN\",\"18643\":\"MUSI RAWAS\",\"928070\":\"MUSI RAWAS UTARA\",\"20087\":\"OGAN ILIR\",\"17570\":\"OGAN KOMERING ILIR\",\"17405\":\"OGAN KOMERING ULU\",\"19808\":\"OGAN KOMERING ULU SELATAN\",\"19492\":\"OGAN KOMERING ULU TIMUR\",\"928069\":\"PENUKAL ABAB LEMATANG ILIR\"}},\"20802\":{\"nama\":\"BENGKULU\",\"kabs\":{\"20923\":\"BENGKULU SELATAN\",\"20803\":\"BENGKULU TENGAH\",\"21265\":\"BENGKULU UTARA\",\"21492\":\"KAUR\",\"22135\":\"KEPAHIANG\",\"22252\":\"KOTA BENGKULU\",\"22052\":\"LEBONG\",\"21885\":\"MUKOMUKO\",\"21093\":\"REJANG LEBONG\",\"21702\":\"SELUMA\"}},\"22328\":{\"nama\":\"LAMPUNG\",\"kabs\":{\"24709\":\"KOTA BANDAR LAMPUNG\",\"24822\":\"KOTA METRO\",\"23460\":\"LAMPUNG BARAT\",\"22605\":\"LAMPUNG SELATAN\",\"22875\":\"LAMPUNG TENGAH\",\"24202\":\"LAMPUNG TIMUR\",\"23189\":\"LAMPUNG UTARA\",\"22439\":\"MESUJI\",\"24850\":\"PESAWARAN\",\"928071\":\"PESISIR BARAT\",\"22329\":\"PRINGSEWU\",\"23903\":\"TANGGAMUS\",\"23737\":\"TULANG BAWANG\",\"22522\":\"TULANG BAWANG BARAT\",\"24484\":\"WAY KANAN\"}},\"24993\":{\"nama\":\"KEPULAUAN BANGKA BELITUNG\",\"kabs\":{\"24994\":\"BANGKA\",\"25245\":\"BANGKA BARAT\",\"25120\":\"BANGKA SELATAN\",\"25181\":\"BANGKA TENGAH\",\"25072\":\"BELITUNG\",\"25316\":\"BELITUNG TIMUR\",\"25363\":\"KOTA PANGKALPINANG\"}},\"25405\":{\"nama\":\"KEPULAUAN RIAU\",\"kabs\":{\"25471\":\"BINTAN\",\"25533\":\"KARIMUN\",\"25429\":\"KEPULAUAN ANAMBAS\",\"25746\":\"KOTA BATAM\",\"25406\":\"KOTA TANJUNGPINANG\",\"25683\":\"LINGGA\",\"25597\":\"NATUNA\"}},\"25823\":{\"nama\":\"DKI JAKARTA\",\"kabs\":{\"25924\":\"JAKARTA BARAT\",\"25833\":\"JAKARTA PUSAT\",\"25989\":\"JAKARTA SELATAN\",\"26065\":\"JAKARTA TIMUR\",\"25886\":\"JAKARTA UTARA\",\"25824\":\"KEPULAUAN SERIBU\"}},\"26141\":{\"nama\":\"JAWA BARAT\",\"kabs\":{\"27407\":\"BANDUNG\",\"31896\":\"BANDUNG BARAT\",\"31685\":\"BEKASI\",\"26142\":\"BOGOR\",\"28573\":\"CIAMIS\",\"27026\":\"CIANJUR\",\"29369\":\"CIREBON\",\"27714\":\"GARUT\",\"30503\":\"INDRAMAYU\",\"31345\":\"KARAWANG\",\"32193\":\"KOTA BANDUNG\",\"32646\":\"KOTA BANJAR\",\"32403\":\"KOTA BEKASI\",\"32077\":\"KOTA BOGOR\",\"32547\":\"KOTA CIMAHI\",\"32375\":\"KOTA CIREBON\",\"32472\":\"KOTA DEPOK\",\"32152\":\"KOTA SUKABUMI\",\"32566\":\"KOTA TASIKMALAYA\",\"28960\":\"KUNINGAN\",\"29834\":\"MAJALENGKA\",\"927964\":\"PANGANDARAN\",\"31135\":\"PURWAKARTA\",\"30851\":\"SUBANG\",\"26611\":\"SUKABUMI\",\"30197\":\"SUMEDANG\",\"28182\":\"TASIKMALAYA\"}},\"32676\":{\"nama\":\"JAWA TENGAH\",\"kabs\":{\"33603\":\"BANJARNEGARA\",\"32986\":\"BANYUMAS\",\"40053\":\"BATANG\",\"37514\":\"BLORA\",\"35575\":\"BOYOLALI\",\"41165\":\"BREBES\",\"32677\":\"CILACAP\",\"38917\":\"DEMAK\",\"37214\":\"GROBOGAN\",\"38706\":\"JEPARA\",\"36790\":\"KARANGANYAR\",\"33902\":\"KEBUMEN\",\"39746\":\"KENDAL\",\"35862\":\"KLATEN\",\"41480\":\"KOTA MAGELANG\",\"41779\":\"KOTA PEKALONGAN\",\"41558\":\"KOTA SALATIGA\",\"41585\":\"KOTA SEMARANG\",\"41501\":\"KOTA SURAKARTA\",\"41831\":\"KOTA TEGAL\",\"38564\":\"KUDUS\",\"35181\":\"MAGELANG\",\"38136\":\"PATI\",\"40317\":\"PEKALONGAN\",\"40622\":\"PEMALANG\",\"33345\":\"PURBALINGGA\",\"34389\":\"PURWOREJO\",\"37826\":\"REMBANG\",\"39181\":\"SEMARANG\",\"36985\":\"SRAGEN\",\"36290\":\"SUKOHARJO\",\"40859\":\"TEGAL\",\"39436\":\"TEMANGGUNG\",\"36470\":\"WONOGIRI\",\"34900\":\"WONOSOBO\"}},\"41863\":{\"nama\":\"DAERAH ISTIMEWA YOGYAKARTA\",\"kabs\":{\"41965\":\"BANTUL\",\"42058\":\"GUNUNGKIDUL\",\"42325\":\"KOTA YOGYAKARTA\",\"41864\":\"KULON PROGO\",\"42221\":\"SLEMAN\"}},\"42385\":{\"nama\":\"JAWA TIMUR\",\"kabs\":{\"50031\":\"BANGKALAN\",\"44923\":\"BANYUWANGI\",\"43360\":\"BLITAR\",\"48347\":\"BOJONEGORO\",\"45165\":\"BONDOWOSO\",\"49656\":\"GRESIK\",\"44643\":\"JEMBER\",\"47001\":\"JOMBANG\",\"43630\":\"KEDIRI\",\"51550\":\"KOTA BATU\",\"51145\":\"KOTA BLITAR\",\"51095\":\"KOTA KEDIRI\",\"51327\":\"KOTA MADIUN\",\"51170\":\"KOTA MALANG\",\"51306\":\"KOTA MOJOKERTO\",\"51268\":\"KOTA PASURUAN\",\"51233\":\"KOTA PROBOLINGGO\",\"51358\":\"KOTA SURABAYA\",\"49154\":\"LAMONGAN\",\"44417\":\"LUMAJANG\",\"47634\":\"MADIUN\",\"47856\":\"MAGETAN\",\"43993\":\"MALANG\",\"46678\":\"MOJOKERTO\",\"47329\":\"NGANJUK\",\"48110\":\"NGAWI\",\"42386\":\"PACITAN\",\"50532\":\"PAMEKASAN\",\"45916\":\"PASURUAN\",\"42570\":\"PONOROGO\",\"45561\":\"PROBOLINGGO\",\"50331\":\"SAMPANG\",\"46306\":\"SIDOARJO\",\"45407\":\"SITUBONDO\",\"50735\":\"SUMENEP\",\"42897\":\"TRENGGALEK\",\"48805\":\"TUBAN\",\"43069\":\"TULUNGAGUNG\"}},\"51578\":{\"nama\":\"BANTEN\",\"kabs\":{\"53054\":\"KOTA CILEGON\",\"53106\":\"KOTA SERANG\",\"52936\":\"KOTA TANGERANG\",\"53179\":\"KOTA TANGERANG SELATAN\",\"51913\":\"LEBAK\",\"51579\":\"PANDEGLANG\",\"52593\":\"SERANG\",\"52287\":\"TANGERANG\"}},\"53241\":{\"nama\":\"BALI\",\"kabs\":{\"53439\":\"BADUNG\",\"53650\":\"BANGLI\",\"53814\":\"BULELENG\",\"53508\":\"GIANYAR\",\"53242\":\"JEMBRANA\",\"53727\":\"KARANGASEM\",\"53586\":\"KLUNGKUNG\",\"53972\":\"KOTA DENPASAR\",\"53299\":\"TABANAN\"}},\"54020\":{\"nama\":\"NUSA TENGGARA BARAT\",\"kabs\":{\"54666\":\"BIMA\",\"54590\":\"DOMPU\",\"54982\":\"KOTA BIMA\",\"54925\":\"KOTA MATARAM\",\"54021\":\"LOMBOK BARAT\",\"54123\":\"LOMBOK TENGAH\",\"54260\":\"LOMBOK TIMUR\",\"55026\":\"LOMBOK UTARA\",\"54400\":\"SUMBAWA\",\"54853\":\"SUMBAWA BARAT\"}},\"55065\":{\"nama\":\"NUSA TENGGARA TIMUR\",\"kabs\":{\"56051\":\"ALOR\",\"55819\":\"BELU\",\"56671\":\"ENDE\",\"56244\":\"FLORES TIMUR\",\"58040\":\"KOTA KUPANG\",\"55066\":\"KUPANG\",\"57406\":\"LEMBATA\",\"928072\":\"MALAKA\",\"57008\":\"MANGGARAI\",\"57649\":\"MANGGARAI BARAT\",\"58098\":\"MANGGARAI TIMUR\",\"57778\":\"NAGEKEO\",\"56904\":\"NGADA\",\"57560\":\"ROTE NDAO\",\"58219\":\"SABU RAIJUA\",\"56489\":\"SIKKA\",\"57346\":\"SUMBA BARAT\",\"57935\":\"SUMBA BARAT DAYA\",\"57886\":\"SUMBA TENGAH\",\"57167\":\"SUMBA TIMUR\",\"55347\":\"TIMOR TENGAH SELATAN\",\"55620\":\"TIMOR TENGAH UTARA\"}},\"58285\":{\"nama\":\"KALIMANTAN BARAT\",\"kabs\":{\"59557\":\"BENGKAYANG\",\"59320\":\"KAPUAS HULU\",\"60134\":\"KAYONG UTARA\",\"58749\":\"KETAPANG\",\"60183\":\"KOTA PONTIANAK\",\"60223\":\"KOTA SINGKAWANG\",\"60255\":\"KUBU RAYA\",\"59699\":\"LANDAK\",\"59953\":\"MELAWI\",\"58490\":\"MEMPAWAH\",\"58286\":\"SAMBAS\",\"58567\":\"SANGGAU\",\"59869\":\"SEKADAU\",\"59018\":\"SINTANG\"}},\"60371\":{\"nama\":\"KALIMANTAN TENGAH\",\"kabs\":{\"60867\":\"BARITO SELATAN\",\"61846\":\"BARITO TIMUR\",\"60967\":\"BARITO UTARA\",\"61492\":\"GUNUNG MAS\",\"60653\":\"KAPUAS\",\"61077\":\"KATINGAN\",\"61929\":\"KOTA PALANGKARAYA\",\"60372\":\"KOTAWARINGIN BARAT\",\"60468\":\"KOTAWARINGIN TIMUR\",\"61400\":\"LAMANDAU\",\"61711\":\"MURUNG RAYA\",\"61614\":\"PULANG PISAU\",\"61251\":\"SERUYAN\",\"61362\":\"SUKAMARA\"}},\"61965\":{\"nama\":\"KALIMANTAN SELATAN\",\"kabs\":{\"63866\":\"BALANGAN\",\"62333\":\"BANJAR\",\"62643\":\"BARITO KUALA\",\"63007\":\"HULU SUNGAI SELATAN\",\"63167\":\"HULU SUNGAI TENGAH\",\"63348\":\"HULU SUNGAI UTARA\",\"64085\":\"KOTA BANJARBARU\",\"64027\":\"KOTA BANJARMASIN\",\"62112\":\"KOTABARU\",\"63578\":\"TABALONG\",\"63722\":\"TANAH BUMBU\",\"61966\":\"TANAH LAUT\",\"62861\":\"TAPIN\"}},\"64111\":{\"nama\":\"KALIMANTAN TIMUR\",\"kabs\":{\"64496\":\"BERAU\",\"65528\":\"KOTA BALIKPAPAN\",\"65656\":\"KOTA BONTANG\",\"65567\":\"KOTA SAMARINDA\",\"65069\":\"KUTAI BARAT\",\"64248\":\"KUTAI KARTANEGARA\",\"65315\":\"KUTAI TIMUR\",\"928073\":\"MAHAKAM ULU\",\"64112\":\"PASER\",\"65469\":\"PENAJAM PASER UTARA\"}},\"928068\":{\"nama\":\"KALIMANTAN UTARA\",\"kabs\":{\"64617\":\"BULUNGAN\",\"65631\":\"KOTA TARAKAN\",\"64949\":\"MALINAU\",\"64709\":\"NUNUKAN\",\"65675\":\"TANA TIDUNG\"}},\"65702\":{\"nama\":\"SULAWESI UTARA\",\"kabs\":{\"65822\":\"BOLAANG MONGONDOW\",\"65760\":\"BOLAANG MONGONDOW SELATAN\",\"65703\":\"BOLAANG MONGONDOW TIMUR\",\"66936\":\"BOLAANG MONGONDOW UTARA\",\"66188\":\"KEPULAUAN SANGIHE\",\"67035\":\"KEPULAUAN SIAU TAGULANDANG BIARO\",\"66371\":\"KEPULAUAN TALAUD\",\"67227\":\"KOTA BITUNG\",\"67355\":\"KOTA KOTAMOBAGU\",\"67130\":\"KOTA MANADO\",\"67305\":\"KOTA TOMOHON\",\"65974\":\"MINAHASA\",\"66544\":\"MINAHASA SELATAN\",\"66853\":\"MINAHASA TENGGARA\",\"66718\":\"MINAHASA UTARA\"}},\"67393\":{\"nama\":\"SULAWESI TENGAH\",\"kabs\":{\"67558\":\"BANGGAI\",\"68681\":\"BANGGAI KEPULAUAN\",\"928074\":\"BANGGAI LAUT\",\"68309\":\"BUOL\",\"68041\":\"DONGGALA\",\"69220\":\"KOTA PALU\",\"68428\":\"MOROWALI\",\"928075\":\"MOROWALI UTARA\",\"68887\":\"PARIGI MOUTONG\",\"67866\":\"POSO\",\"67394\":\"SIGI\",\"69089\":\"TOJO UNA-UNA\",\"68206\":\"TOLITOLI\"}},\"69268\":{\"nama\":\"SULAWESI SELATAN\",\"kabs\":{\"69668\":\"BANTAENG\",\"70873\":\"BARRU\",\"70239\":\"BONE\",\"69531\":\"BULUKUMBA\",\"71437\":\"ENREKANG\",\"69962\":\"GOWA\",\"69744\":\"JENEPONTO\",\"69442\":\"KEPULAUAN SELAYAR\",\"72309\":\"KOTA MAKASSAR\",\"72493\":\"KOTA PALOPO\",\"72467\":\"KOTA PARE PARE\",\"71579\":\"LUWU\",\"72190\":\"LUWU TIMUR\",\"72007\":\"LUWU UTARA\",\"70639\":\"MAROS\",\"70757\":\"PANGKAJENE DAN KEPULAUAN\",\"71327\":\"PINRANG\",\"71209\":\"SIDENRENG RAPPANG\",\"70149\":\"SINJAI\",\"70935\":\"SOPPENG\",\"69869\":\"TAKALAR\",\"71828\":\"TANA TORAJA\",\"69269\":\"TORAJA UTARA\",\"71014\":\"WAJO\"}},\"72551\":{\"nama\":\"SULAWESI TENGGARA\",\"kabs\":{\"74018\":\"BOMBANA\",\"73420\":\"BUTON\",\"928084\":\"BUTON SELATAN\",\"928083\":\"BUTON TENGAH\",\"74525\":\"BUTON UTARA\",\"72552\":\"KOLAKA\",\"928076\":\"KOLAKA TIMUR\",\"74288\":\"KOLAKA UTARA\",\"72786\":\"KONAWE\",\"928077\":\"KONAWE KEPULAUAN\",\"73650\":\"KONAWE SELATAN\",\"74437\":\"KONAWE UTARA\",\"74665\":\"KOTA BAU BAU\",\"74590\":\"KOTA KENDARI\",\"73150\":\"MUNA\",\"928082\":\"MUNA BARAT\",\"74179\":\"WAKATOBI\"}},\"74716\":{\"nama\":\"GORONTALO\",\"kabs\":{\"74941\":\"BOALEMO\",\"75031\":\"BONE BOLANGO\",\"74717\":\"GORONTALO.\",\"75301\":\"GORONTALO UTARA\",\"75365\":\"KOTA GORONTALO\",\"75183\":\"PAHUWATO\"}},\"75425\":{\"nama\":\"SULAWESI BARAT\",\"kabs\":{\"76047\":\"MAJENE\",\"75670\":\"MAMASA\",\"75502\":\"MAMUJU\",\"928078\":\"MAMUJU TENGAH\",\"75426\":\"MAMUJU UTARA\",\"75863\":\"POLEWALI MANDAR\"}},\"76096\":{\"nama\":\"MALUKU\",\"kabs\":{\"76651\":\"BURU\",\"76223\":\"BURU SELATAN\",\"76868\":\"KEPULAUAN ARU\",\"76995\":\"KOTA AMBON\",\"77051\":\"KOTA TUAL\",\"76097\":\"MALUKU BARAT DAYA\",\"76284\":\"MALUKU TENGAH\",\"76470\":\"MALUKU TENGGARA\",\"76568\":\"MALUKU TENGGARA BARAT\",\"76771\":\"SERAM BAGIAN BARAT\",\"76708\":\"SERAM BAGIAN TIMUR\"}},\"77085\":{\"nama\":\"MALUKU UTARA\",\"kabs\":{\"77155\":\"HALMAHERA BARAT\",\"77578\":\"HALMAHERA SELATAN\",\"77311\":\"HALMAHERA TENGAH\",\"77956\":\"HALMAHERA TIMUR\",\"77364\":\"HALMAHERA UTARA\",\"77858\":\"KEPULAUAN SULA\",\"78040\":\"KOTA TERNATE\",\"78122\":\"KOTA TIDORE KEPULAUAN\",\"77086\":\"PULAU MOROTAI\",\"928079\":\"PULAU TALIABU\"}},\"78203\":{\"nama\":\"PAPUA\",\"kabs\":{\"79163\":\"ASMAT\",\"80526\":\"BIAK NUMFOR\",\"78927\":\"BOVEN DIGOEL\",\"78289\":\"DEIYAI\",\"79752\":\"DOGIYAI\",\"78204\":\"INTAN JAYA\",\"80144\":\"JAYAPURA\",\"80015\":\"JAYAWIJAYA\",\"81192\":\"KEEROM\",\"80402\":\"KEPULAUAN YAPEN\",\"79421\":\"KOTA JAYAPURA\",\"79564\":\"LANNY JAYA\",\"79354\":\"MAMBERAMO RAYA\",\"79466\":\"MAMBERAMO TENGAH\",\"79019\":\"MAPPI\",\"79826\":\"MERAUKE\",\"81007\":\"MIMIKA\",\"80309\":\"NABIRE\",\"79629\":\"NDUGA\",\"80851\":\"PANIAI\",\"81261\":\"PEGUNUNGAN BINTANG\",\"79663\":\"PUNCAK\",\"80724\":\"PUNCAK JAYA\",\"81104\":\"SARMI\",\"79310\":\"SUPIORI\",\"78324\":\"TOLIKARA\",\"78862\":\"WAROPEN\",\"81357\":\"YAHUKIMO\",\"79531\":\"YALIMO\"}},\"81877\":{\"nama\":\"PAPUA BARAT\",\"kabs\":{\"82605\":\"FAKFAK\",\"83194\":\"KAIMANA\",\"83289\":\"KOTA SORONG\",\"82154\":\"MANOKWARI\",\"928080\":\"MANOKWARI SELATAN\",\"81878\":\"MAYBRAT\",\"928081\":\"PEGUNUNGAN ARFAK\",\"82850\":\"RAJA AMPAT\",\"82022\":\"SORONG\",\"82724\":\"SORONG SELATAN\",\"81992\":\"TAMBRAUW\",\"82965\":\"TELUK BINTUNI\",\"83107\":\"TELUK WONDAMA\"}},\"-99\":{\"nama\":\"+Luar Negeri\",\"kabs\":{\"-990412\":\"Afganistan\",\"-990682\":\"Afrika Selatan\",\"-990962\":\"Afrika Selatan\",\"-990042\":\"Aljazair\",\"-990902\":\"Amerika Serikat\",\"-991162\":\"Amerika Serikat\",\"-991122\":\"Amerika Serikat\",\"-991052\":\"Amerika Serikat\",\"-990972\":\"Amerika Serikat\",\"-991212\":\"Amerika Serikat\",\"-990722\":\"Arab Saudi\",\"-991072\":\"Arab Saudi\",\"-990252\":\"Argentina\",\"-991202\":\"Australia\",\"-990262\":\"Australia\",\"-991142\":\"Australia\",\"-991262\":\"Australia\",\"-991232\":\"Australia\",\"-990922\":\"Austria\",\"-990112\":\"Azerbaijan\",\"-990522\":\"Bahrain\",\"-990332\":\"Bangladesh\",\"-990322\":\"Belanda\",\"-990222\":\"Belgia\",\"-990762\":\"Bosnia-Herzegovina\",\"-990202\":\"Brasil\",\"-990122\":\"Brunei Darussalam\",\"-990792\":\"Bulgaria\",\"-990752\":\"Chile\",\"-990452\":\"Denmark\",\"-990702\":\"Ekuador\",\"-990032\":\"Ethiopia\",\"-990812\":\"Fiji\",\"-990982\":\"Filipina\",\"-990532\":\"Filipina\",\"-990392\":\"Finlandia\",\"-990242\":\"Hongaria\",\"-990592\":\"India\",\"-991152\":\"India\",\"-990502\":\"Inggris\",\"-990102\":\"Irak\",\"-990832\":\"Iran\",\"-990732\":\"Italia\",\"-991182\":\"Jepang\",\"-990842\":\"Jepang\",\"-991002\":\"Jerman\",\"-990172\":\"Jerman\",\"-991022\":\"Jerman\",\"-990652\":\"Kamboja\",\"-991252\":\"Kanada\",\"-991242\":\"Kanada\",\"-990612\":\"Kanada\",\"-990082\":\"Kazakhstan\",\"-990582\":\"Kenya\",\"-990192\":\"Kolombia\",\"-990772\":\"Korea Selatan\",\"-990692\":\"Korea Utara\",\"-990952\":\"Kroasia\",\"-990382\":\"Kuba\",\"-990472\":\"Kuwait\",\"-990882\":\"Laos\",\"-990152\":\"Lebanon\",\"-990852\":\"Libya\",\"-990072\":\"Madagaskar\",\"-990462\":\"Malaysia\",\"-991192\":\"Malaysia\",\"-991112\":\"Malaysia\",\"-991102\":\"Malaysia\",\"-991082\":\"Malaysia\",\"-990422\":\"Mesir\",\"-990552\":\"Mexico\",\"-990712\":\"Morocco\",\"-990542\":\"Mozambik\",\"-990942\":\"Myanmar\",\"-990932\":\"Namibia\",\"-990022\":\"Nigeria\",\"-990602\":\"Norwegia\",\"-990572\":\"Oman\",\"-990402\":\"Pakistan\",\"-991092\":\"Pakistan\",\"-990622\":\"Panama\",\"-991292\":\"Papua Nugini\",\"-990662\":\"Papua Nugini\",\"-991172\":\"Perancis\",\"-991132\":\"Perancis\",\"-990642\":\"Perancis\",\"-990482\":\"Peru\",\"-990892\":\"Polandia\",\"-990492\":\"Portugal\",\"-990352\":\"Qatar\",\"-990672\":\"Republik Ceko\",\"-991042\":\"Republik Rakyat Tiongkok\",\"-991222\":\"Republik Rakyat Tiongkok\",\"-990142\":\"Republik Rakyat Tiongkok\",\"-990232\":\"Rumania\",\"-990562\":\"Rusia\",\"-991282\":\"Sabah\",\"-990912\":\"Selandia Baru\",\"-990292\":\"Senegal\",\"-990162\":\"Serbia\",\"-990782\":\"Singapura\",\"-990212\":\"Slowakia\",\"-990512\":\"Spanyol\",\"-990282\":\"Sri Langka\",\"-990432\":\"Sudan\",\"-990302\":\"Suriah\",\"-990632\":\"Suriname\",\"-990802\":\"Swedia\",\"-990182\":\"Swiss\",\"-991302\":\"Taiwan\",\"-990312\":\"Tanzania\",\"-991272\":\"Thailand\",\"-990132\":\"Thailand\",\"-990342\":\"Timor Leste\",\"-991012\":\"Tiongkok\",\"-990862\":\"Tunisia\",\"-990062\":\"Turki\",\"-991062\":\"Turki\",\"-990442\":\"Ukrania\",\"-990992\":\"Uni Emirat Arab\",\"-990012\":\"Uni Emirat Arab\",\"-990822\":\"Uzbekistan\",\"-990872\":\"Vatikan\",\"-990272\":\"Venezuela\",\"-990362\":\"Vietnam\",\"-991032\":\"Vietnam\",\"-990742\":\"Yaman\",\"-990052\":\"Yordania\",\"-990092\":\"Yunani\",\"-990372\":\"Zimbabwe\"}}}";
+
+      var oprops = null;
+        $(document).ready(function () {
+          oprops = JSON.parse(props);
+          $('#propselect')[0].options.length = 0;
+          $('#propselect').append($('<option>').text("Pilih Propinsi").attr('value', -1));
+          $.each( oprops, function( key, value ) {
+            $('#propselect').append($('<option>').text(value.nama).attr('value', key));
+          });
+
+          $('#propselect').change(function() {
+            var val = $('#propselect').val();
+            $('#kabselect')[0].options.length = 0;
+            $('#kabselect').append($('<option>').text("Pilih Kabupaten/Kota").attr('value', -1));
+            if (val !== "-1") {
+              var kabs = oprops[val].kabs;
+              $.each( kabs, function( key, value ) {
+                $('#kabselect').append($('<option>').text(value).attr('value', key));
+              });
+            }
+          });
+
+          $('#clearlog').click(function(event){
+            event.preventDefault();
+            $("#tail_window").html("");
+          });
+
+          $('#process').click(function(event){
+            event.preventDefault();
+            var prop = $('#propselect').val();
+            var kab = $('#kabselect').val();
+            var pro = $('#process').text();
+
+            if (pro === "Stop") {
+              
+
+              $.ajax({
+                  type: "POST",
+                  url: "/stop",
+                  data: JSON.stringify({ prop: prop, kab: kab}), 
+                  success: function(data)
+                  {
+                  }
+                });
+              return;
+            }
+
+            if (prop === "-1") {
+              swal("Oops", "Propinsi belum dipilih", "warning")
+              return;
+            }
+
+            if (kab === "-1") {
+              swal("Oops", "Kabupaten/Kota belum dipilih", "warning")
+              return;
+            }
+
+            $.ajax({
+                  type: "POST",
+                  url: "/process",
+                  data: JSON.stringify({ prop: prop, kab: kab}), 
+                  success: function(data)
+                  {
+                      console.log(JSON.stringify(data)); 
+                      if (data.result === "BUSY") {
+                        if (data.propinsi != -1) {
+                          $('#propselect').val(data.propinsi);
+                        }
+                        $('#kabselect')[0].options.length = 0;
+                        $('#kabselect').append($('<option>').text("Pilih Kabupaten/Kota").attr('value', -1));
+                        if (data.kotakabupaten != -1) {
+                          var kabs = oprops[data.propinsi].kabs;
+                          $.each( kabs, function( key, value ) {
+                            $('#kabselect').append($('<option>').text(value).attr('value', key));
+                          });
+                          $('#kabselect').val(data.kotakabupaten);
+                        }
+                      } 
+
+                      $('#process').text("Stop");
+                      $('#process').removeClass("btn-primary");
+                      $('#process').addClass("btn-danger");
+                      $('#propselect').attr("disabled", "disabled");
+                      $('#kabselect').attr("disabled", "disabled");
+                  }
+                });
+            
+          });
+        });
+  
+        $(document).ready(function () {
+            var url = location.protocol + "//" + location.hostname + ":" + location.port + "/log";
+            var socket = io.connect(url, {transports: ['websocket']});
+  
+            socket.on('log', function (line) {
+              $("#tail_window").prepend(line);
+            });
+
+            url = location.protocol + "//" + location.hostname + ":" + location.port + "/prog";
+            socket = io.connect(url, {transports: ['websocket']});
+  
+            socket.on('prog', function (line) {
+              if (line === "--") {
+                $('#process').text("Process");
+                $('#process').removeClass("btn-danger");
+                $('#process').addClass("btn-primary");
+                $('#process').removeAttr("disabled");
+                $('#propselect').removeAttr("disabled");
+                $('#kabselect').removeAttr("disabled");
+                $("#processing").html("IDLE");
+              } else if (line === "++") {
+                $('#process').text("Stopping");
+                $('#process').attr("disabled", "disabled");
+              } else {
+                $("#processing").html(line);
+              }
+            });
+        });
+  
+        
+    </script>
+</body>
+</html>
